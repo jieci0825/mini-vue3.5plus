@@ -4,7 +4,7 @@
     "description": "Vue3.5+版本以上的 mini 实现",
     "main": "index.js",
     "scripts": {
-        "dev": "node scripts/dev.js reactivity --format cjs"
+        "dev": "node scripts/dev.js reactivity --format esm"
     },
     "keywords": [],
     "author": "coderjc <coderjc@qq.com>",

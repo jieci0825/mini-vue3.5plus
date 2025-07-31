@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <script type="module">
+        import { ref, effect } from '../dist/reactivity.esm.js'
+
+        const state = ref(1)
+
+        effect(() => {
+            console.log(state.value)
+        })
+
+        setTimeout(() => {
+            console.log('修改数据')
+            state.value += 1
+        }, 2000)
+    </script>
+</body>
+
+</html>
