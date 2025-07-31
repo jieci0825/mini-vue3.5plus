@@ -1,0 +1,20 @@
+{
+    "name": "mini-vue",
+    "version": "1.0.0",
+    "description": "Vue3.5+版本以上的 mini 实现",
+    "main": "index.js",
+    "scripts": {
+        "dev": "node scripts/dev.js reactivity --format cjs"
+    },
+    "keywords": [],
+    "author": "coderjc <coderjc@qq.com>",
+    "type": "module",
+    "license": "MIT",
+    "packageManager": "pnpm@10.12.1",
+    "devDependencies": {
+        "@types/node": "^24.1.0",
+        "esbuild": "^0.25.8",
+        "prettier": "^3.6.2",
+        "typescript": "^5.8.3"
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "esnext",
+        "strict": true,
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "outDir": "dist",
+        "lib": ["esnext", "dom"],
+        "baseUrl": "./",
+        "paths": {
+            "@my-vue/*": ["packages/*/src/index.ts"]
+        }
+    },
+    "include": ["./packages/**/*.ts"],
+    "exclude": ["./scripts"]
+}
