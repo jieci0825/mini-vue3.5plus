@@ -1,8 +1,9 @@
+import type { ReactiveEffect } from './effect'
 import type { RefImpl } from './ref'
 
 export interface Link {
     // 保存 effect
-    sub: Function
+    sub: ReactiveEffect
     nextSub: Link | undefined
     prevSub: Link | undefined
 }
@@ -12,7 +13,7 @@ export interface Link {
  * @param dep ref 实例
  * @param sub effect 函数
  */
-export function link(dep: RefImpl, sub: Function) {
+export function link(dep: RefImpl, sub: ReactiveEffect) {
     // 构建一个新的链接节点
     const newLink: Link = {
         sub,
@@ -42,7 +43,7 @@ export function propagate(dep: RefImpl) {
     // 最开始先提取头结点
     let link = dep.subs
     // 创建一个队列，用于待执行的 effect
-    const queueEffect: Function[] = []
+    const queueEffect: ReactiveEffect[] = []
     // 遍历订阅者-直到最后一个尾节点
     while (link) {
         queueEffect.push(link.sub)
@@ -50,5 +51,5 @@ export function propagate(dep: RefImpl) {
         link = link.nextSub
     }
     // 遍历执行 effect
-    queueEffect.forEach(effect => effect())
+    queueEffect.forEach(effect => effect.run())
 }
