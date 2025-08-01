@@ -1,7 +1,5 @@
 export let activeSub: ReactiveEffect | undefined = undefined
 
-const effectStack: ReactiveEffect[] = []
-
 export class ReactiveEffect {
     fn: Function
     constructor(fn: Function) {
