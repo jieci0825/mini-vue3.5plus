@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <script type="module">
+        import { ref, effect } from '../dist/reactivity.esm.js'
+
+        const count1 = ref(1)
+
+
+        const runner = effect(() => {
+            console.log('effect:', count1.value)
+
+            return '大河之剑天上来'
+        }, {
+            scheduler: () => {
+                const result = runner()
+                console.log('调度器执行了', result)
+            }
+        })
+
+        setTimeout(() => {
+            console.log('开始改变数据')
+            count1.value = 2
+        }, 2000)
+    </script>
+</body>
+
+</html>

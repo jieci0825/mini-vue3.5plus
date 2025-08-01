@@ -51,5 +51,5 @@ export function propagate(dep: RefImpl) {
         link = link.nextSub
     }
     // 遍历执行 effect
-    queueEffect.forEach(effect => effect.run())
+    queueEffect.forEach(effect => effect.notify())
 }

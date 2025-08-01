@@ -5,6 +5,7 @@ export class ReactiveEffect {
     constructor(fn: Function) {
         this.fn = fn
     }
+
     run() {
         // 在将当前的 effect 赋值给 activeSub 之前，先将前一个 activeSub 保存起来
         const prev = activeSub
@@ -18,9 +19,36 @@ export class ReactiveEffect {
             activeSub = prev
         }
     }
+
+    scheduler() {
+        this.run()
+    }
+
+    notify() {
+        this.scheduler()
+    }
 }
 
-export function effect(fn: Function) {
+type EffectFunction = {
+    (): any
+    effect?: ReactiveEffect
+}
+
+export function effect(
+    fn: Function,
+    options: any = {
+        scheduler: undefined
+    }
+) {
     const _effect = new ReactiveEffect(fn)
+
+    Object.assign(_effect, options)
+
     _effect.run()
+
+    const runner: EffectFunction = _effect.run.bind(_effect)
+
+    runner.effect = _effect
+
+    return runner
 }
