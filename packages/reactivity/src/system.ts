@@ -46,10 +46,20 @@ export function link(dep: RefImpl, sub: ReactiveEffect) {
         }
     } */
 
-    const nextDep = sub.depsTail === undefined ? sub.deps : sub.depsTail.nextDep
-    // @ts-ignore
+    // 为什么取的是 sub.depsTail.nextDep
+    //  - sub.depsTail.nextDep 实际存储的就是一个 Link 节点
+    //  - sub.deps 也是一个 Link 节点
+    //  - 如果 sub.depsTail 如果是 undefined 的情况：
+    //      1. 且如果此时如果 sub.deps 是无值的，则表示是初始化的依赖收集，需要创建新的 Link 节点，则不会进入下面的 if 判断，也就是不会进入复用节点的逻辑，而是走后续的创建新 Link 节点及其给当前 effect 实例绑定和新创建的 Link 节点的关联关系
+    //      2. 如果此时 sub.deps 是有值的则表示已经初始化收集依赖完成了，且是修改一个依赖项的值之后，重新触发的 effect 作用域中第一个依赖项，所以此时 sub.deps 存在值，但是 sub.depsTail 是 undefined。 那么就表示只能通过 sub.deps 来和当前 dep(ref/reactive...) 进行比对，来查看是不是同一个 ref。如果是同一个，就因为初始化阶段已经收集过了就不需要再收集了。 而完成复用之后就不需要重新新的 link 了。所以直接退出即可。但是要注意此时还需要把 sub.depsTail 恢复为 sub.deps，因为存在这个 effect 中里面不止用到一个 dep(ref/reactive...) 的情况。 因为每个 dep 都会有一个 link 被保存。如果不恢复，那么后续的其他 dep(ref/reactive...) dep 在这里二次执行 effect 对比中，就一直是和 link1 对比。 那么就无法正确的复用。
+    //  - 如果 sub.depsTail 不是 undefined 的情况：
+    //      1. 那么就表示已经不是第一个 dep 的对比了，而是后续的 dep 的对比，所以此时需要通过 sub.depsTail.nextDep 来进行对比。
+    // * 因此此处能够实现复用 link 节点的本质是，通过link创建双向链表结构，作为初始依赖，而后续则通过单项链接的结构中按照顺序对比，来实现相同的 def 情况来不创建新的 link 节点，从而实现复用。
+    // * 而这也就是为什么在执行 effect 之前，需要给 sub.depsTail 赋值为 undefined，这样才不会导致对比 effect 中第一个 dep 的时候，是和当前 effect 中最后一个 dep 进行对比，从而无法正确比对，导致无法复用 link 节点。
+    const nextDep = (
+        sub.depsTail === undefined ? sub.deps : sub.depsTail.nextDep
+    ) as Link | undefined
     if (nextDep && nextDep.dep === dep) {
-        // @ts-ignore
         sub.depsTail = nextDep
         return
     }
@@ -82,8 +92,7 @@ export function link(dep: RefImpl, sub: ReactiveEffect) {
         sub.deps = newLink
         sub.depsTail = newLink
     } else {
-        // @ts-ignore
-        sub.depsTail.nextDep = newLink
+        sub.depsTail.nextDep = newLink as unknown as Dep
         sub.depsTail = newLink
     }
 }
