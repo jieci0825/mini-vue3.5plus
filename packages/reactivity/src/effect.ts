@@ -15,7 +15,8 @@ export class ReactiveEffect {
         //  - 起到的是一个标记的作用
         //  - 即如果 deps 和 depsTail 都为 undefined，则说明当前 effect 没有依赖，是第一次执行
         //  - 如果 deps 存在但是 depsTail 为 undefined，则说明不是第一次执行了
-        this.depsTail = undefined
+        // this.depsTail = undefined
+        startTrack(this)
 
         // 在将当前的 effect 赋值给 activeSub 之前，先将前一个 activeSub 保存起来
         const prev = activeSub
@@ -62,7 +63,15 @@ export function effect(fn: Function, options: any = {}) {
 }
 
 /**
- * 移除在新的 effect 函数执行时，不需要的旧依赖
+ * 开始追踪依赖
+ */
+export function startTrack(sub: ReactiveEffect) {
+    sub.depsTail = undefined
+}
+
+/**
+ * 结束追踪依赖
+ * @description 移除在新的 effect 函数执行时，不需要的旧依赖
  */
 function endTrack(sub: ReactiveEffect) {
     const depsTail = sub.depsTail
@@ -85,12 +94,12 @@ function endTrack(sub: ReactiveEffect) {
      */
     if (depsTail) {
         if (depsTail.nextDep) {
-            console.log('移除依赖', depsTail.nextDep)
+            // console.log('移除依赖', depsTail.nextDep)
             clearTracking(depsTail.nextDep as unknown as Link)
             depsTail.nextDep = undefined
         }
     } else if (sub.deps) {
-        console.log('移除头节点依赖', sub.deps)
+        // console.log('移除头节点依赖', sub.deps)
         clearTracking(sub.deps)
         sub.deps = undefined
     }
