@@ -70,7 +70,8 @@ export function link(dep: RefImpl, sub: ReactiveEffect) {
         nextSub: undefined,
         prevSub: undefined,
         dep: dep,
-        nextDep: undefined
+        // 为了解决分支切换导致的遗留依赖问题，在前面没有复用成功的时候，需要将这个没有复用成功的 link 节点设置为 nextDep
+        nextDep: nextDep as unknown as Dep
     }
 
     // 检测是否存在尾节点

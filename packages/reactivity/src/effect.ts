@@ -25,6 +25,9 @@ export class ReactiveEffect {
         try {
             return this.fn()
         } finally {
+            // 正常来说 depsTail 的 nextDep 是 undefined，如果存在就表示分支切换时，有需需要废弃的依赖，需要清除掉
+            endTrack(this)
+
             // 恢复之前的 activeSub
             activeSub = prev
         }
@@ -56,4 +59,75 @@ export function effect(fn: Function, options: any = {}) {
     runner.effect = _effect
 
     return runner
+}
+
+/**
+ * 移除在新的 effect 函数执行时，不需要的旧依赖
+ */
+function endTrack(sub: ReactiveEffect) {
+    const depsTail = sub.depsTail
+
+    /**
+     * * 清除 dep 则是清除对应的 link 节点
+     * 情况一：depsTail 有且 nextDep 存在，则说明有需要废弃的依赖，需要清除掉
+     * 情况二：依赖追踪完成之后 depsTail 为 undefined
+     *  - 比如：
+     *      1. count 一开始是 0，会执行 effect。
+     *      2. 再次改变 name，此时 count 已经大于 0，则执行 effect 时，就不会在走到依赖 name 的地方，此时虽然因为重新执行 depsTail 还是 undefined，但是头结点是存在的，则会清除头结点(此处就是 name 依赖)。
+     *      3. 然后因为 name 已经被清理，name 后续在改变，就不会再次触发 effect。
+     * let count = 0;
+     * effect(() => {
+     *     if(count > 0) return;
+     *     count++;
+     *
+     *     console.log(name.value)
+     * })
+     */
+    if (depsTail) {
+        if (depsTail.nextDep) {
+            console.log('移除依赖', depsTail.nextDep)
+            clearTracking(depsTail.nextDep as unknown as Link)
+            depsTail.nextDep = undefined
+        }
+    } else if (sub.deps) {
+        console.log('移除头节点依赖', sub.deps)
+        clearTracking(sub.deps)
+        sub.deps = undefined
+    }
+}
+
+/**
+ * 执行清除依赖关系
+ */
+function clearTracking(link: Link) {
+    while (link) {
+        const { sub, prevSub, nextSub, dep, nextDep } = link
+        /**
+         * - 如果 prevSub 有，则表示当前节点存在上一个节点，我们需要做的就是把当前节点的上一个节点的 nextSub 指向当前节点的下一个节点
+         * - 如果没有 prevSub，则说明当前节点是头结点，我们需要做的就是当前 dep(ref/reactive...) 的 subs(头节点) 指向其下一个节点
+         */
+        if (prevSub) {
+            prevSub.nextSub = nextSub
+            link.nextDep = undefined
+        } else {
+            dep.subs = nextSub
+        }
+
+        /**
+         * - 如果 nextSub 有，则根据上一步的思路做一个相反的行为
+         */
+        if (nextSub) {
+            nextSub.prevSub = prevSub
+            link.prevSub = undefined
+        } else {
+            dep.subsTail = prevSub
+        }
+
+        // @ts-ignore
+        link.dep = link.sub = undefined
+        link.nextDep = undefined
+
+        // 继续遍历下一个节点
+        link = nextDep as unknown as Link
+    }
 }
