@@ -6,6 +6,7 @@ export class ReactiveEffect {
     fn: Function
     deps: Link | undefined
     depsTail: Link | undefined
+    tracking: boolean = false
     constructor(fn: Function) {
         this.fn = fn
     }
@@ -66,6 +67,7 @@ export function effect(fn: Function, options: any = {}) {
  * 开始追踪依赖
  */
 export function startTrack(sub: ReactiveEffect) {
+    sub.tracking = true
     sub.depsTail = undefined
 }
 
@@ -74,6 +76,7 @@ export function startTrack(sub: ReactiveEffect) {
  * @description 移除在新的 effect 函数执行时，不需要的旧依赖
  */
 function endTrack(sub: ReactiveEffect) {
+    sub.tracking = false
     const depsTail = sub.depsTail
 
     /**

@@ -123,7 +123,11 @@ export function propagate(dep: RefImpl) {
     const queueEffect: ReactiveEffect[] = []
     // 遍历订阅者-直到最后一个尾节点
     while (link) {
-        queueEffect.push(link.sub as ReactiveEffect)
+        const sub = link.sub as ReactiveEffect
+        if (!sub.tracking) {
+            // 等于 false 表示 effect 已经执行完成了，此时重新触发式安全的。不会导致无限递归循环
+            queueEffect.push(sub)
+        }
         // 将当前节点指向下一个节点
         link = link.nextSub
     }

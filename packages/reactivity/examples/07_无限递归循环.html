@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <button>+1</button>
+    <script type="module">
+        import { ref, effect } from '../dist/reactivity.esm.js'
+
+        const count = ref(1)
+
+        /**
+         * 无限递归循环，在 effect 即访问进行收集依赖，同时改变触发依赖
+         */
+        effect(() => {
+            console.log(count.value++)
+        })
+
+        document.querySelector('button').onclick = () => {
+            count.value++
+        }
+
+    </script>
+</body>
+
+</html>
