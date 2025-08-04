@@ -1,4 +1,4 @@
-import { Link } from './system'
+import { clearTracking, Link } from './system'
 
 export let activeSub: ReactiveEffect | undefined = undefined
 
@@ -102,41 +102,5 @@ function endTrack(sub: ReactiveEffect) {
         // console.log('移除头节点依赖', sub.deps)
         clearTracking(sub.deps)
         sub.deps = undefined
-    }
-}
-
-/**
- * 执行清除依赖关系
- */
-function clearTracking(link: Link) {
-    while (link) {
-        const { sub, prevSub, nextSub, dep, nextDep } = link
-        /**
-         * - 如果 prevSub 有，则表示当前节点存在上一个节点，我们需要做的就是把当前节点的上一个节点的 nextSub 指向当前节点的下一个节点
-         * - 如果没有 prevSub，则说明当前节点是头结点，我们需要做的就是当前 dep(ref/reactive...) 的 subs(头节点) 指向其下一个节点
-         */
-        if (prevSub) {
-            prevSub.nextSub = nextSub
-            link.nextDep = undefined
-        } else {
-            dep.subs = nextSub
-        }
-
-        /**
-         * - 如果 nextSub 有，则根据上一步的思路做一个相反的行为
-         */
-        if (nextSub) {
-            nextSub.prevSub = prevSub
-            link.prevSub = undefined
-        } else {
-            dep.subsTail = prevSub
-        }
-
-        // @ts-ignore
-        link.dep = link.sub = undefined
-        link.nextDep = undefined
-
-        // 继续遍历下一个节点
-        link = nextDep as unknown as Link
     }
 }

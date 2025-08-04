@@ -1,6 +1,9 @@
 import type { ReactiveEffect } from './effect'
 import type { RefImpl } from './ref'
 
+// * linkPool 也是个链表
+let linkPool: Link | undefined = undefined
+
 // 依赖实例
 //  - 即当前 ref/reactive/... 的订阅者是哪个 effect
 export interface Dep {
@@ -64,14 +67,25 @@ export function link(dep: RefImpl, sub: ReactiveEffect) {
         return
     }
 
-    // 构建一个新的链接节点
-    const newLink: Link = {
-        sub,
-        nextSub: undefined,
-        prevSub: undefined,
-        dep: dep,
-        // 为了解决分支切换导致的遗留依赖问题，在前面没有复用成功的时候，需要将这个没有复用成功的 link 节点设置为 nextDep
-        nextDep: nextDep as unknown as Dep
+    let newLink: Link
+    if (linkPool) {
+        // 如果存在复用节点，则将复用节点从 linkPool 中取出
+        newLink = linkPool
+        // 取用之后，将 linkPool 充值为指向的下一个节点，保证后续复用的顺序正确
+        linkPool = linkPool.nextDep as Link | undefined
+        newLink.nextDep = nextDep as unknown as Dep
+        newLink.sub = sub
+        newLink.dep = dep
+    } else {
+        // 构建一个新的链接节点
+        newLink = {
+            sub,
+            nextSub: undefined,
+            prevSub: undefined,
+            dep: dep,
+            // 为了解决分支切换导致的遗留依赖问题，在前面没有复用成功的时候，需要将这个没有复用成功的 link 节点设置为 nextDep
+            nextDep: nextDep as unknown as Dep
+        }
     }
 
     // 检测是否存在尾节点
@@ -115,4 +129,43 @@ export function propagate(dep: RefImpl) {
     }
     // 遍历执行 effect
     queueEffect.forEach(effect => effect.notify())
+}
+
+/**
+ * 执行清除依赖关系
+ */
+export function clearTracking(link: Link) {
+    while (link) {
+        const { sub, prevSub, nextSub, dep, nextDep } = link
+        /**
+         * - 如果 prevSub 有，则表示当前节点存在上一个节点，我们需要做的就是把当前节点的上一个节点的 nextSub 指向当前节点的下一个节点
+         * - 如果没有 prevSub，则说明当前节点是头结点，我们需要做的就是当前 dep(ref/reactive...) 的 subs(头节点) 指向其下一个节点
+         */
+        if (prevSub) {
+            prevSub.nextSub = nextSub
+            link.nextDep = undefined
+        } else {
+            dep.subs = nextSub
+        }
+
+        /**
+         * - 如果 nextSub 有，则根据上一步的思路做一个相反的行为
+         */
+        if (nextSub) {
+            nextSub.prevSub = prevSub
+            link.prevSub = undefined
+        } else {
+            dep.subsTail = prevSub
+        }
+
+        // @ts-ignore
+        link.dep = link.sub = undefined
+        // 将之前 linkPool 的值赋值给当前 link.nextDep
+        link.nextDep = linkPool as any
+        // 然后将当前 link 赋值给 linkPool 保持最新的，将这些删除的 link 节点保存起来，以便后续复用
+        linkPool = link
+
+        // 继续遍历下一个节点
+        link = nextDep as unknown as Link
+    }
 }
