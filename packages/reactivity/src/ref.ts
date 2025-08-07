@@ -1,5 +1,5 @@
 import { activeSub } from './effect'
-import { link, Link, propagate } from './system'
+import { Dependency, link, Link, propagate } from './system'
 
 enum ReactiveEnum {
     IS_REF = '__v_isRef'
@@ -41,7 +41,7 @@ export function isRef(r: any) {
 /**
  * 收集依赖
  */
-export function trackRef(dep: RefImpl) {
+export function trackRef(dep: Dependency) {
     if (activeSub) {
         link(dep, activeSub)
     }
@@ -49,7 +49,7 @@ export function trackRef(dep: RefImpl) {
 /**
  * 触发 ref 相关的 effect 重新执行
  */
-export function triggerRef(dep: RefImpl) {
+export function triggerRef(dep: Dependency) {
     if (dep.subs) {
         propagate(dep)
     }

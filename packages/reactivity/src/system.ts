@@ -6,7 +6,7 @@ let linkPool: Link | undefined = undefined
 
 // 依赖实例
 //  - 即当前 ref/reactive/... 的订阅者是哪个 effect
-export interface Dep {
+export interface Dependency {
     // 订阅者链表的头结点
     subs: Link | undefined
     // 订阅者链接的尾节点
@@ -26,8 +26,8 @@ export interface Link {
     nextSub: Link | undefined
     prevSub: Link | undefined
     // 依赖实例(如ref reactive)-单向
-    dep: Dep
-    nextDep: Dep | undefined
+    dep: Dependency
+    nextDep: Dependency | undefined
 }
 
 /**
@@ -35,7 +35,7 @@ export interface Link {
  * @param dep ref 实例
  * @param sub effect 函数
  */
-export function link(dep: RefImpl, sub: ReactiveEffect) {
+export function link(dep: Dependency, sub: ReactiveEffect) {
     /* // 在此处进行检测，如果 dep(ref/reactive...) 已经和 sub(effect) 存在关联关系了，则不在创建新的 link
     const currentDeps = sub.depsTail
     // 如果当前 sub(effect) 的尾部依赖为空，且头部依赖存在，则表示当前 sub(effect) 已经和 dep(ref/reactive...) 存在关联关系了
@@ -73,7 +73,7 @@ export function link(dep: RefImpl, sub: ReactiveEffect) {
         newLink = linkPool
         // 取用之后，将 linkPool 充值为指向的下一个节点，保证后续复用的顺序正确
         linkPool = linkPool.nextDep as Link | undefined
-        newLink.nextDep = nextDep as unknown as Dep
+        newLink.nextDep = nextDep as unknown as Dependency
         newLink.sub = sub
         newLink.dep = dep
     } else {
@@ -84,7 +84,7 @@ export function link(dep: RefImpl, sub: ReactiveEffect) {
             prevSub: undefined,
             dep: dep,
             // 为了解决分支切换导致的遗留依赖问题，在前面没有复用成功的时候，需要将这个没有复用成功的 link 节点设置为 nextDep
-            nextDep: nextDep as unknown as Dep
+            nextDep: nextDep as unknown as Dependency
         }
     }
 
@@ -107,7 +107,7 @@ export function link(dep: RefImpl, sub: ReactiveEffect) {
         sub.deps = newLink
         sub.depsTail = newLink
     } else {
-        sub.depsTail.nextDep = newLink as unknown as Dep
+        sub.depsTail.nextDep = newLink as unknown as Dependency
         sub.depsTail = newLink
     }
 }
@@ -116,7 +116,7 @@ export function link(dep: RefImpl, sub: ReactiveEffect) {
  * 传播依赖-即执行
  * @param dep ref 实例
  */
-export function propagate(dep: RefImpl) {
+export function propagate(dep: Dependency) {
     // 最开始先提取头结点
     let link = dep.subs
     // 创建一个队列，用于待执行的 effect
