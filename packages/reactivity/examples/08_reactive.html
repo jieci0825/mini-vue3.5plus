@@ -14,20 +14,21 @@
         const a = ref(0)
 
         const obj = {
-            a: a
+            a: {
+                b: 1
+            }
         }
 
         const state = reactive(obj)
 
 
         effect(() => {
-            console.log('effect', state.a)
+            console.log('effect', state.a.b)
         })
 
         setTimeout(() => {
             console.log('修改数据')
-            state.a = 2
-            console.log('修改数据完成', a)
+            state.a.b = 2
         }, 2000)
     </script>
 </body>

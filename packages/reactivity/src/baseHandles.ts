@@ -1,15 +1,22 @@
-import { hasChange } from '@my-vue/shared'
+import { hasChange, isObject } from '@my-vue/shared'
 import { isRef } from './ref'
 import { track, trigger } from './dep'
+import { reactive } from './reactive'
 
 export const mutableHandlers: ProxyHandler<object> = {
     get(target, key, receiver) {
         track(target, key)
 
         const result = Reflect.get(target, key, receiver)
+
         if (isRef(result)) {
             return result.value
         }
+
+        if (isObject(result)) {
+            return reactive(result)
+        }
+
         return result
     },
 
