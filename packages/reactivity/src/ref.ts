@@ -1,7 +1,9 @@
+import { hasChange, isObject } from '@my-vue/shared'
 import { activeSub } from './effect'
 import { Dependency, link, Link, propagate } from './system'
+import { reactive } from './reactive'
 
-enum ReactiveEnum {
+export enum ReactiveEnum {
     IS_REF = '__v_isRef'
 }
 
@@ -13,8 +15,9 @@ export class RefImpl {
     [ReactiveEnum.IS_REF]: boolean = true
     subs: Link | undefined // 订阅者的头结点
     subsTail: Link | undefined // 订阅者的尾结点
+
     constructor(value: any) {
-        this._value = value
+        this._value = isObject(value) ? reactive(value) : value
     }
 
     get value() {
@@ -24,9 +27,13 @@ export class RefImpl {
 
     set value(newValue) {
         // 值更新完成之后，触发依赖
-        this._value = newValue
+        newValue = isObject(newValue) ? reactive(newValue) : newValue
 
-        triggerRef(this)
+        if (hasChange(this._value, newValue)) {
+            triggerRef(this)
+        }
+
+        this._value = newValue
     }
 }
 

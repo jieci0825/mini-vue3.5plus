@@ -1,5 +1,4 @@
 import type { ReactiveEffect } from './effect'
-import type { RefImpl } from './ref'
 
 // * linkPool 也是个链表
 let linkPool: Link | undefined = undefined

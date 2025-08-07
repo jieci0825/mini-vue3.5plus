@@ -21,3 +21,7 @@ export function isBoolean(value: any): value is boolean {
 export function isSymbol(value: any): value is symbol {
     return typeof value === 'symbol'
 }
+
+export function hasChange(value: any, oldValue: any): boolean {
+    return !Object.is(value, oldValue)
+}

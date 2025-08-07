@@ -1,67 +1,68 @@
-import { isObject } from '@my-vue/shared'
-import { link, Link, propagate } from './system'
-import { activeSub } from './effect'
+import { hasChange, isObject } from '@my-vue/shared'
+import { isRef } from './ref'
+import { track, trigger } from './dep'
 
 export function reactive(target: object) {
     return createReactiveObject(target)
 }
 
-const targetMap = new WeakMap()
+const reactiveMap = new WeakMap()
+const reactiveSet = new WeakSet()
+
+const mutableHandlers: ProxyHandler<object> = {
+    get(target, key, receiver) {
+        track(target, key)
+
+        const result = Reflect.get(target, key, receiver)
+        if (isRef(result)) {
+            return result.value
+        }
+        return result
+    },
+
+    set(target, key, newValue, receiver) {
+        // @ts-ignore
+        const oldValue = target[key]
+
+        const result = Reflect.set(target, key, newValue, receiver)
+
+        // 如果旧值是一个 ref，并且新值不是一个 ref，那么需要同步
+        if (isRef(oldValue) && !isRef(newValue)) {
+            oldValue.value = newValue
+            return result
+        }
+
+        if (hasChange(newValue, oldValue)) {
+            trigger(target, key)
+        }
+
+        return result
+    }
+}
 
 function createReactiveObject(target: object) {
     if (!isObject(target)) {
         return target
     }
 
-    const proxy = new Proxy(target, {
-        get(target, key, receiver) {
-            track(target, key)
-            return Reflect.get(target, key, receiver)
-        },
+    if (reactiveSet.has(target)) {
+        return target
+    }
 
-        set(target, key, value, receiver) {
-            const result = Reflect.set(target, key, value, receiver)
-            trigger(target, key)
-            return result
-        }
-    })
+    const existingProxy = reactiveMap.get(target)
+    if (existingProxy) {
+        return existingProxy
+    }
+
+    const proxy = new Proxy(target, mutableHandlers)
+
+    reactiveMap.set(target, proxy)
+
+    reactiveSet.add(proxy)
 
     return proxy
 }
 
-function track(target: object, key: string | symbol) {
-    if (!activeSub) return
-
-    let depsMap = targetMap.get(target)
-    if (!depsMap) {
-        depsMap = new Map()
-        targetMap.set(target, depsMap)
-    }
-
-    let deps = depsMap.get(key)
-    if (!deps) {
-        deps = new Dep()
-        depsMap.set(key, deps)
-    }
-
-    link(deps, activeSub)
-}
-
-function trigger(target: object, key: string | symbol) {
-    const depsMap = targetMap.get(target)
-    if (!depsMap) return
-
-    const deps = depsMap.get(key)
-    if (!deps) return
-
-    propagate(deps)
-}
-
-class Dep {
-    // 订阅者链表的头结点
-    subs: Link | undefined
-    // 订阅者链接的尾节点
-    subsTail: Link | undefined
-
-    constructor() {}
+export function isReactive(target: any) {
+    return reactiveSet.has(target)
 }

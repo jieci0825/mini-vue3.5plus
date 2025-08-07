@@ -9,19 +9,25 @@
 
 <body>
     <script type="module">
-        import { reactive, effect } from '../dist/reactivity.esm.js'
+        import { reactive, ref, effect } from '../dist/reactivity.esm.js'
 
-        const state = reactive({
-            a: 1
-        })
+        const a = ref(0)
+
+        const obj = {
+            a: a
+        }
+
+        const state = reactive(obj)
+
 
         effect(() => {
-            console.log(state.a)
+            console.log('effect', state.a)
         })
 
         setTimeout(() => {
             console.log('修改数据')
             state.a = 2
+            console.log('修改数据完成', a)
         }, 2000)
     </script>
 </body>
