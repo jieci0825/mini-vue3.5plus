@@ -1,12 +1,17 @@
-import { clearTracking, Link } from './system'
+import { clearTracking, Link, Sub } from './system'
 
-export let activeSub: ReactiveEffect | undefined = undefined
+export let activeSub: Sub | undefined = undefined
+
+export function setActiveSub(sub: Sub | undefined) {
+    activeSub = sub
+}
 
 export class ReactiveEffect {
     fn: Function
     deps: Link | undefined
     depsTail: Link | undefined
     tracking: boolean = false
+
     constructor(fn: Function) {
         this.fn = fn
     }
@@ -22,7 +27,7 @@ export class ReactiveEffect {
         // 在将当前的 effect 赋值给 activeSub 之前，先将前一个 activeSub 保存起来
         const prev = activeSub
 
-        activeSub = this
+        setActiveSub(this)
 
         try {
             return this.fn()
@@ -31,7 +36,7 @@ export class ReactiveEffect {
             endTrack(this)
 
             // 恢复之前的 activeSub
-            activeSub = prev
+            setActiveSub(prev)
         }
     }
 
@@ -66,7 +71,7 @@ export function effect(fn: Function, options: any = {}) {
 /**
  * 开始追踪依赖
  */
-export function startTrack(sub: ReactiveEffect) {
+export function startTrack(sub: Sub) {
     sub.tracking = true
     sub.depsTail = undefined
 }
@@ -75,7 +80,7 @@ export function startTrack(sub: ReactiveEffect) {
  * 结束追踪依赖
  * @description 移除在新的 effect 函数执行时，不需要的旧依赖
  */
-function endTrack(sub: ReactiveEffect) {
+export function endTrack(sub: Sub) {
     sub.tracking = false
     const depsTail = sub.depsTail
 

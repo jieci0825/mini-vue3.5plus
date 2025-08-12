@@ -30,10 +30,9 @@ export class RefImpl {
         newValue = isObject(newValue) ? reactive(newValue) : newValue
 
         if (hasChange(this._value, newValue)) {
+            this._value = newValue
             triggerRef(this)
         }
-
-        this._value = newValue
     }
 }
 
@@ -58,6 +57,6 @@ export function trackRef(dep: Dependency) {
  */
 export function triggerRef(dep: Dependency) {
     if (dep.subs) {
-        propagate(dep)
+        propagate(dep.subs)
     }
 }

@@ -1,3 +1,4 @@
+import { ComputedRefImpl } from './computed'
 import type { ReactiveEffect } from './effect'
 
 // * linkPool 也是个链表
@@ -17,6 +18,7 @@ export interface Dependency {
 export interface Sub {
     deps: Link | undefined
     depsTail: Link | undefined
+    tracking: boolean
 }
 
 export interface Link {
@@ -34,7 +36,7 @@ export interface Link {
  * @param dep ref 实例
  * @param sub effect 函数
  */
-export function link(dep: Dependency, sub: ReactiveEffect) {
+export function link(dep: Dependency, sub: Sub) {
     /* // 在此处进行检测，如果 dep(ref/reactive...) 已经和 sub(effect) 存在关联关系了，则不在创建新的 link
     const currentDeps = sub.depsTail
     // 如果当前 sub(effect) 的尾部依赖为空，且头部依赖存在，则表示当前 sub(effect) 已经和 dep(ref/reactive...) 存在关联关系了
@@ -111,24 +113,34 @@ export function link(dep: Dependency, sub: ReactiveEffect) {
     }
 }
 
+function processComputedUpdate(sub: ComputedRefImpl) {
+    sub.update()
+    propagate(sub.subs!)
+}
+
 /**
  * 传播依赖-即执行
  * @param dep ref 实例
  */
-export function propagate(dep: Dependency) {
+export function propagate(subs: Link) {
     // 最开始先提取头结点
-    let link = dep.subs
+    let link = subs
     // 创建一个队列，用于待执行的 effect
     const queueEffect: ReactiveEffect[] = []
     // 遍历订阅者-直到最后一个尾节点
     while (link) {
-        const sub = link.sub as ReactiveEffect
+        const sub = link.sub
         if (!sub.tracking) {
-            // 等于 false 表示 effect 已经执行完成了，此时重新触发式安全的。不会导致无限递归循环
-            queueEffect.push(sub)
+            // 如果 sub 存在 update 属性，则表示是一个 computed 数据，需要单独处理
+            if ('update' in sub) {
+                processComputedUpdate(sub as ComputedRefImpl)
+            } else {
+                // 等于 false 表示 effect 已经执行完成了，此时重新触发式安全的。不会导致无限递归循环
+                queueEffect.push(sub as ReactiveEffect)
+            }
         }
         // 将当前节点指向下一个节点
-        link = link.nextSub
+        link = link.nextSub!
     }
     // 遍历执行 effect
     queueEffect.forEach(effect => effect.notify())
